@@ -1,0 +1,105 @@
+name: 'SBOM Observer Scan and Upload'
+description: 'Create SBOM and upload it to SBOM Observer'
+inputs:
+  token:
+    description: 'SBOM Observer API Token'
+    required: true
+  namespace:
+    description: 'SBOM Observer Namespace'
+    required: false
+    default: 'default'
+  name:
+    description: 'Override Name field for top level component'
+    required: false
+  version:
+    description: 'Override Version field for top level component'
+    required: false
+  group:
+    description: 'Override Group field for top level component'
+    required: false
+  path:
+    description: 'Path to analyze'
+    required: false
+  image:
+    description: 'Image to analyze'
+    required: false
+  retention-policy:
+    description: 'Retention policy to optionally apply after importing SBOM'
+    required: false
+  retention-keep:
+    description: 'Retention policy configuration: Keep the last N attestations (per {name, type, tags} set'
+    required: false
+  retention-keep-dependencies:
+    description: 'Retention policy configuration: Keep attestations for components that have incoming dependencies'
+    required: false
+  sbom:
+    description: 'Name of SBOM file generated'
+    required: false
+    default: 'sbom.cdx.json'
+outputs:
+  attestation-id:
+    description: "ID for this attestation"
+    value: ${{ steps.upload-sbom-status.outputs.id}}
+  status:
+    description: "Status of upload"
+    value: ${{ steps.upload-sbom-status.outputs.status }}
+runs:
+  using: "composite"
+  steps:
+    - run: echo Starting SBOM Generation, saving output to ${{ inputs.output }}.
+      shell: bash
+    - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
+      shell: bash
+    - name: Check inputs
+      shell: bash
+      if:  inputs.image != '' && inputs.path != ''
+      run: |
+        echo "::error title='input validation error'::'supply either image or path, not both'"
+        exit 1
+    - name: Run Trivy to generate SBOM (filesystem scan)
+      if: ${{ inputs.path != '' }}
+      uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f
+      id: sca-fs
+      with:
+        scan-type: 'fs'
+        scan-ref: '${{ inputs.path }}'
+        format: 'cyclonedx'
+        output: ${{ inputs.sbom }}
+        exit-code: '1'
+    - name: Run Trivy to generate SBOM (image scan)
+      if: ${{ inputs.image != '' }}
+      uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f
+      id: sca-image
+      with:
+        scan-type: 'image'
+        image-ref: '${{ inputs.image }}'
+        format: 'cyclonedx'
+        output: ${{ inputs.sbom }}
+        exit-code: '1'
+    - name: Upload to SBOM Observer
+      shell: bash
+      id: upload-sbom
+      env:
+        OBSERVER_TOKEN: ${{ inputs.token }}
+        OBSERVER_ENDPOINT: https://sbom.observer/v1/${{ inputs.namespace }}/attestations
+        INPUT_FILE: ${{ inputs.sbom }}
+      run: |
+        curl -o curl_result.json --fail -F files=@$INPUT_FILE \
+        -F 'name=${{ inputs.name }}' \
+        -F 'version=${{ inputs.version }}' \
+        -F 'group=${{ inputs.group }}' \
+        -F 'retention-policy=${{ inputs.retention-policy }}' \
+        -F 'retention-keep=${{ inputs.retention-keep }}' \
+        -F 'retention-keep-dependencies=${{ inputs.retention-keep-dependencies }}' \
+        -H 'Content-Type: multipart/form-data' -H "Authorization: Bearer $OBSERVER_TOKEN" $OBSERVER_ENDPOINT
+        {
+          echo "CURL_RESULT<<EOF" 
+          cat curl_result.json
+          echo "EOF"
+        }  >> $GITHUB_ENV
+    - name: Extract Status
+      shell: bash
+      id: upload-sbom-status
+      run: |
+        echo "status=${{ fromJson(env.CURL_RESULT)[0].status}}" >> "$GITHUB_OUTPUT"
+        echo "id=${{ fromJson(env.CURL_RESULT)[0].id}}" >> "$GITHUB_OUTPUT"
