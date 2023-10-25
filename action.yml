@@ -1,5 +1,8 @@
 name: 'SBOM Observer Scan and Upload'
 description: 'Create SBOM and upload it to SBOM Observer'
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
 inputs:
   token:
     description: 'SBOM Observer API Token'
