@@ -84,7 +84,7 @@ runs:
       id: upload-sbom
       env:
         OBSERVER_TOKEN: ${{ inputs.token }}
-        OBSERVER_ENDPOINT: https://sbom.observer/v1/${{ inputs.namespace }}/attestations
+        OBSERVER_ENDPOINT: https://api.sbom.observer/v1/${{ inputs.namespace }}/attestations
         INPUT_FILE: ${{ inputs.sbom }}
       run: |
         curl -o curl_result.json --fail -F files=@$INPUT_FILE \
