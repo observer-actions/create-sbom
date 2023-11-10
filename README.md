@@ -14,6 +14,8 @@ This GitHub Action facilitates the creation of a Software Bill of Materials (SBO
 | `version`                     | Override the Version field for the top level component in the SBOM.                                            | No       | N/A               |
 | `group`                       | Override the Group field for the top level component in the SBOM.                                              | No       | N/A               |
 | `path`                        | The filesystem path to analyze for generating the SBOM. Either `path` or `image` should be provided, not both. | No       | N/A               |
+| `skip-dirs`                   | Comma-separated list of directories to skip when scanning the filesystem.                                      | No       | N/A               |
+| `skip-files`                  | Comma-separated list of files to skip when scanning the filesystem.                                            | No       | N/A               |
 | `image`                       | The container image to analyze for generating the SBOM. Either `path` or `image` should be provided, not both. | No       | N/A               |
 | `retention-policy`            | Retention policy to optionally apply after importing the SBOM into SBOM Observer.                              | No       | N/A               |
 | `retention-keep`              | Retention policy configuration: Keep the last N attestations (per {name, type, tags} set).                     | No       | N/A               |
