@@ -23,6 +23,12 @@ inputs:
   path:
     description: 'Path to analyze'
     required: false
+  skip-dirs:
+    description: 'Paths to ignore, comma separated'
+    required: false
+  skip-files:
+    description: 'Files to ignore, comma separated'
+    required: false
   image:
     description: 'Image to analyze'
     required: false
@@ -66,6 +72,8 @@ runs:
       with:
         scan-type: 'fs'
         scan-ref: '${{ inputs.path }}'
+        skip-dirs: '${{ inputs.skip-dirs }}'
+        skip-files: '${{ inputs.skip-files }}'
         format: 'cyclonedx'
         output: ${{ inputs.sbom }}
         exit-code: '1'
